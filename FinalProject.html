@@ -196,7 +196,205 @@ $(document).ready(function () {
 
 
 <p>Millions of sites exist that allow individuals to post and answer questions. From personal blogs to sites like Reddit and Stack Exachange, there are a plethora of opportunities for people to interact and help eachother throughout the internet. In doing so, enclave-like internet communities begin to form, where the same individuals respond to the same types of questions and virtually interact with the same kinds of individuals. Throughout this tutorial, we will employ data mining techniques to demonstrate how to identify a set of individuals that engage with the same kind of content online.</p>
-<p>As a case study to demonstrate the formation of online communities, we will walk through an analysis of <a href="https://stats.stackexchange.com/">CrossValidated</a>.</p>
+<p>As a case study to demonstrate the formation of online communities, we will walk through an analysis of <a href="https://stats.stackexchange.com/">CrossValidated</a> users. The data set that we have is pulled from Stack Exchange’s Data Explorer Tool. It contains all posts answered by users with a reputation score over 10,000. The data consist of 42,739 individual observations (at the question level), answered by 104 different users.</p>
+<p>We can preview the data here:</p>
+<pre><code>##    q_id answered n_chars_body n_words_body n_chars_title n_words_title
+## 1 20570        1          806           53            69            13
+## 2 20579        1         3797           65            34             4
+## 3 20581        1          548           32            52             9
+## 4 20590        1         2404          135            79            12
+## 5 20593        1         1340           75            65             7
+## 6 20608        1          395           31            30             4
+##   n_tags n_tags_body n_tags_title n_paragraphs_body n_code_snippets
+## 1      1           0            0                 4               1
+## 2      2           3            1                 7               1
+## 3      5           3            2                 2               0
+## 4      3           3            1                13               4
+## 5      4           5            3                 2              10
+## 6      1           0            1                 2               0
+##   n_plots n_stop_words_body verbosity ques_marks_title ques_marks_body
+## 1       0                57 1.0754717                1               1
+## 2       1                55 0.8461538                0               1
+## 3       0                12 0.3750000                1               1
+## 4       0                85 0.6296296                1               1
+## 5       0                75 1.0000000                0               2
+## 6       0                34 1.0967742                1               1
+##   min_tag_popularity min_tag_popularity_score min_tag_answered_ratio
+## 1                  1                      322              0.4316770
+## 2                  0                       20              0.5000000
+## 3                  0                        5              0.4285714
+## 4                  0                       31              0.5463646
+## 5                  0                       12              0.4166667
+## 6                  0                       33              0.7575758
+##   max_tag_popularity max_tag_popularity_score max_tag_answered_ratio
+## 1                  1                      322              0.4316770
+## 2                  0                      128              0.5937500
+## 3                  2                     1074              0.8000000
+## 4                  4                     5694              0.6774194
+## 5                  2                     1535              0.6422764
+## 6                  0                       33              0.7575758
+##   user4253_flag user4257_flag user4376_flag user4505_flag user10849_flag
+## 1             0             0             0             0              0
+## 2             0             0             0             0              0
+## 3             0             0             0             0              0
+## 4             0             0             0             0              0
+## 5             0             0             0             0              0
+## 6             0             0             0             0              0
+##   user11032_flag user113777_flag user17230_flag user17908_flag
+## 1              0               0              0              0
+## 2              0               0              0              0
+## 3              0               0              0              0
+## 4              0               0              0              0
+## 5              0               0              0              0
+## 6              0               0              0              0
+##   user67799_flag user28500_flag user85665_flag user44269_flag
+## 1              0              0              0              0
+## 2              0              0              0              0
+## 3              0              0              0              0
+## 4              0              0              0              0
+## 5              0              0              0              0
+## 6              0              0              0              0
+##   user7828_flag user7972_flag user8013_flag user8076_flag user12359_flag
+## 1             0             0             0             0              0
+## 2             0             0             0             0              0
+## 3             0             0             0             0              0
+## 4             0             0             0             0              0
+## 5             0             0             0             0              0
+## 6             0             0             0             0              0
+##   user116440_flag user67822_flag user164061_flag user30005_flag
+## 1               0              0               0              0
+## 2               0              0               0              0
+## 3               0              0               0              0
+## 4               0              0               0              0
+## 5               0              0               0              0
+## 6               0              0               0              0
+##   user204068_flag user35989_flag user8_flag user25_flag user159_flag
+## 1               0              0          0           0            0
+## 2               0              0          0           0            0
+## 3               0              0          0           0            0
+## 4               0              0          0           0            0
+## 5               0              0          0           0            0
+## 6               0              0          0           0            0
+##   user183_flag user196_flag user251_flag user401_flag user442_flag
+## 1            0            0            0            0            0
+## 2            0            0            0            0            0
+## 3            0            0            0            0            0
+## 4            0            0            0            0            0
+## 5            0            0            0            0            0
+## 6            0            0            0            0            0
+##   user449_flag user601_flag user603_flag user686_flag user1739_flag
+## 1            0            0            1            0             0
+## 2            0            0            0            0             0
+## 3            0            0            0            0             0
+## 4            0            1            0            0             0
+## 5            0            0            0            0             0
+## 6            0            0            0            0             0
+##   user1764_flag user1909_flag user1934_flag user2116_flag user2126_flag
+## 1             0             0             0             0             0
+## 2             0             0             0             0             0
+## 3             0             0             0             0             0
+## 4             0             0             0             0             0
+## 5             0             0             0             0             0
+## 6             0             0             0             0             0
+##   user2392_flag user6633_flag user7071_flag user7224_flag user14076_flag
+## 1             0             0             0             0              0
+## 2             0             0             0             0              0
+## 3             0             0             0             0              0
+## 4             0             0             0             0              0
+## 5             0             0             0             0              0
+## 6             0             0             0             0              0
+##   user14188_flag user21054_flag user22047_flag user22228_flag
+## 1              0              0              0              0
+## 2              0              0              0              0
+## 3              0              0              0              0
+## 4              0              0              0              0
+## 5              0              0              0              0
+## 6              0              0              0              0
+##   user22311_flag user26948_flag user31978_flag user32036_flag
+## 1              0              0              0              0
+## 2              0              0              0              0
+## 3              0              0              0              0
+## 4              0              0              0              0
+## 5              0              0              0              0
+## 6              0              0              0              0
+##   user52554_flag user2817_flag user2958_flag user2970_flag user3019_flag
+## 1              0             0             0             0             0
+## 2              0             0             0             0             0
+## 3              0             0             0             0             0
+## 4              0             0             0             0             0
+## 5              0             0             0             0             0
+## 6              0             0             0             0             0
+##   user3277_flag user3382_flag user5739_flag user5836_flag user25433_flag
+## 1             0             0             0             0              0
+## 2             0             0             0             0              0
+## 3             0             0             0             0              0
+## 4             0             0             0             0              0
+## 5             0             0             0             0              0
+## 6             0             0             0             0              0
+##   user26338_flag user127790_flag user78861_flag user78964_flag
+## 1              0               0              0              0
+## 2              0               0              0              0
+## 3              0               0              0              0
+## 4              0               0              0              0
+## 5              0               0              0              0
+## 6              0               0              0              0
+##   user31420_flag user1352_flag user1390_flag user8336_flag user8373_flag
+## 1              0             0             0             0             0
+## 2              0             0             0             0             0
+## 3              0             0             0             0             0
+## 4              0             0             0             0             0
+## 5              0             0             0             0             0
+## 6              0             0             0             0             0
+##   user8402_flag user13047_flag user74500_flag user76981_flag
+## 1             0              0              0              0
+## 2             0              0              0              0
+## 3             0              0              0              0
+## 4             0              0              0              0
+## 5             0              0              0              0
+## 6             0              0              0              0
+##   user173082_flag user97925_flag user101426_flag user805_flag user858_flag
+## 1               0              0               0            0            0
+## 2               0              0               0            0            0
+## 3               0              0               0            0            0
+## 4               0              0               0            0            0
+## 5               0              0               0            0            0
+## 6               0              0               0            0            0
+##   user887_flag user919_flag user930_flag user1036_flag user53690_flag
+## 1            0            0            0             0              0
+## 2            1            0            0             0              0
+## 3            0            0            0             0              0
+## 4            0            1            0             0              0
+## 5            0            0            0             0              0
+## 6            0            0            0             0              0
+##   user4598_flag user4856_flag user7250_flag user7290_flag user7486_flag
+## 1             0             0             0             0             0
+## 2             0             0             0             0             0
+## 3             1             0             0             0             0
+## 4             0             0             0             0             0
+## 5             0             0             0             0             0
+## 6             0             1             0             0             0
+##   user7555_flag user61092_flag user9394_flag user9964_flag user11852_flag
+## 1             0              0             0             0              0
+## 2             0              0             0             0              0
+## 3             0              0             0             0              0
+## 4             0              0             0             0              0
+## 5             1              0             0             0              0
+## 6             0              0             0             0              0
+##   user11887_flag user23853_flag user28666_flag user28746_flag
+## 1              0              0              0              0
+## 2              0              0              0              0
+## 3              0              0              0              0
+## 4              0              0              0              0
+## 5              0              0              0              0
+## 6              0              0              0              0
+##   user36041_flag user86652_flag
+## 1              0              0
+## 2              0              0
+## 3              0              0
+## 4              0              0
+## 5              0              0
+## 6              0              0</code></pre>
+<p>We first conducted some feature engineering. As you can see, we have the question number, an indicator for whether the question was answered, the number of characters and words in the body of the question and the title of the question, the number of tags on the post, the number of tags in the body, the number of tags in the title, the number of paragraphs in the body, the number of code snippets, the number of plots, the number of “stop words” (words that don’t mean anything in a natural langauage processing context such as articles, prepositions, etc.), the number of question marks in the title, the number of question marks in the body, the minimum tag popularity, the minimum tag popularity score, the minimum tag answered ratio, maximum tag popularity, maximum tag popularity score, maximum tag answered ratio, and one-hot encoding for whether a given user answered the question.</p>
 
 
 
