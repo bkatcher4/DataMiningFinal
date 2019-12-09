@@ -1,5 +1,9 @@
 ---
-title: "DataMiningFinal"
+title: "Advanced Clustering Methods from Post Data"
 author: "Bradley Katcher and Aneesh Sandhir"
 output: html_document
 ---
+
+Millions of sites exist that allow individuals to post and answer questions. From personal blogs to sites like Reddit and Stack Exachange, there are a plethora of opportunities for people to interact and help eachother throughout the internet. In doing so, enclave-like internet communities begin to form, where the same individuals respond to the same types of questions and virtually interact with the same kinds of individuals. Throughout this tutorial, we will employ data mining techniques to demonstrate how to identify a set of individuals that engage with the same kind of content online. 
+
+As a case study to demonstrate the formation of online communities, we will walk through an analysis of [CrossValidated](https://stats.stackexchange.com/) users. 
