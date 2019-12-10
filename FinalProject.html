@@ -197,7 +197,7 @@ $(document).ready(function () {
 
 <p>Millions of sites exist that allow individuals to post and answer questions. From personal blogs to sites like Reddit and Stack Exachange, there are a plethora of opportunities for people to interact and help eachother throughout the internet. In doing so, enclave-like internet communities begin to form, where the same individuals respond to the same types of questions and virtually interact with the same kinds of individuals. Throughout this tutorial, we will employ data mining techniques to demonstrate how to identify a set of individuals that engage with the same kind of content online.</p>
 <p>As a case study to demonstrate the formation of online communities, we will walk through an analysis of <a href="https://stats.stackexchange.com/">CrossValidated</a> users. The data set that we have is pulled from Stack Exchange’s Data Explorer Tool. It contains all posts answered by users with a reputation score over 10,000. The data consist of 42,739 individual observations (at the question level), answered by 104 different users.</p>
-<p>We can preview the data here:</p>
+<p>We can preview the first six rows of data here:</p>
 <pre><code>##    q_id answered n_chars_body n_words_body n_chars_title n_words_title
 ## 1 20570        1          806           53            69            13
 ## 2 20579        1         3797           65            34             4
@@ -395,6 +395,10 @@ $(document).ready(function () {
 ## 5              0              0
 ## 6              0              0</code></pre>
 <p>We first conducted some feature engineering. As you can see, we have the question number, an indicator for whether the question was answered, the number of characters and words in the body of the question and the title of the question, the number of tags on the post, the number of tags in the body, the number of tags in the title, the number of paragraphs in the body, the number of code snippets, the number of plots, the number of “stop words” (words that don’t mean anything in a natural langauage processing context such as articles, prepositions, etc.), the number of question marks in the title, the number of question marks in the body, the minimum tag popularity, the minimum tag popularity score, the minimum tag answered ratio, maximum tag popularity, maximum tag popularity score, maximum tag answered ratio, and one-hot encoding for whether a given user answered the question.</p>
+<p>This data represents characteristics about the questions and is very similar to data that could be scraped and created (via feature engieering) from any given forum site, such as Reddit, Quora, or another quesiton and answer-oriented site. From this data, we seek to get information regarding our users.</p>
+<div id="regression-model" class="section level1">
+<h1>Regression Model:</h1>
+</div>
 
 
 

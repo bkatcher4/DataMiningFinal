@@ -13,6 +13,9 @@ data <- read.csv(url('https://raw.githubusercontent.com/bkatcher4/DataMiningFina
 
 #remove accepted_a_id
 data <- subset(data, select = -c(accepted_a_id) )
+
+answered_by_user <- questions[,c(3:22, (user+23))]
+  answered_by_user[,ncol(answered_by_user)] <- ((answered_by_user[,ncol(answered_by_user)] > 0)*1)
 ```
 
 
@@ -21,10 +24,121 @@ data <- subset(data, select = -c(accepted_a_id) )
 We can preview the first six rows of data here: 
 ```{r eval = TRUE, echo = FALSE}
 head(data)
+names <- c(23:126)
+data[,names] <- lapply(data[,names] , factor)
 ```
 
 We first conducted some feature engineering. As you can see, we have the question number, an indicator for whether the question was answered, the number of characters and words in the body of the question and the title of the question, the number of tags on the post, the number of tags in the body, the number of tags in the title, the number of paragraphs in the body, the number of code snippets, the number of plots, the number of "stop words" (words that don't mean anything in a natural langauage processing context such as articles, prepositions, etc.), the number of question marks in the title, the number of question marks in the body, the minimum tag popularity, the minimum tag popularity score, the minimum tag answered ratio, maximum tag popularity, maximum tag popularity score, maximum tag answered ratio, and one-hot encoding for whether a given user answered the question. 
 
+This data represents characteristics about the questions and is very similar to data that could be scraped and created (via feature engieering) from any given forum site, such as Reddit, Quora, or another quesiton and answer-oriented site. From this data, we seek to get information regarding our users. In order to do this, we are going to run a series of regression models predicting their likelihood of answering a question. We do this in order to obtain beta coefficients for users which indicate their propensity for answering the question. Since the outcome is binary regarding whether someone answered the question, we intend to utilize logistic regression. We will explore regular logistic regression, Ridge Logistic Regression, Lasso Logisitic Regression, and Elastic Net Logistic Regression and determine the eventual matrix of betas to use, based on the model's information criteria resutls. 
 
 
+# Regression Models:
+
+###: Simple Logistic Regression
+```{r eval = TRUE}
+library(tibble)
+
+# intialize tibble to store coefficients
+linear_model_betas <- tibble(name.repair=c("X1", 'X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'X8', 'X9', 'X10', 'X11'))
+
+# loop across all users
+for(user in 1:104){
+  
+  (user)
+  #subset data frame
+  answered_by_user <- data[,c(3:22, (user+22))]
+  
+  # run model
+  model <- glm(answered_by_user[,ncol(answered_by_user)] ~ n_paragraphs_body + n_code_snippets + n_stop_words_body + verbosity + n_tags_title + ques_marks_title + min_tag_answered_ratio + max_tag_popularity + max_tag_answered_ratio + max_tag_popularity_score, family = binomial(link = "logit"), data = answered_by_user)
+  
+  # store beta coefficients in a local
+  beta_i <- model$coefficients
+  
+  # add beta coefficients to data frame
+  linear_model_betas <- cbind(linear_model_betas, beta_i)
+}
+
+#remove X labels
+linear_model_betas <- linear_model_betas[,-1]
+
+#rename variables in tibble 
+tibble_names <- names(data[,names])
+colnames(linear_model_betas) <- tibble_names
+
+```
+
+###: Ridge Regression
+```{r eval = TRUE}
+library(tibble)
+library(glmnet)
+
+fuck <- tibble(name.repair=c("X1", 'X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'X8', 'X9', 'X10', 'X11',
+                             'X12', 'X13', 'X14', 'X15', 'X16', 'X17', 'X18', 'X19', 'X20'))
+
+# loop across all users
+for(user in 1:104){
+  
+  (user)
+  #subset data frame
+  answered_by_user <- data[,c(3:22, (user+22))]
+  answered_by_user[,ncol(answered_by_user)] <- ((answered_by_user[,ncol(answered_by_user)] != 0)*1)
+  
+  # run model
+  ridge_model <- cv.glmnet(x = as.matrix(data.frame(answered_by_user[,c(1:19)])), y = answered_by_user[,ncol(answered_by_user)], alpha = 0, type.measure = "deviance", family = "binomial")
+  
+  #get coefficients
+  ridge_coef <- coef(ridge_model, s="lambda.min")
+  
+  fuck <- cbind(fuck, ridge_coef@x)
+}
+```
+
+# K-Means Clustering  
+```{r eval = TRUE}
+#Calculate Euclidean distance
+t_lmb = t(linear_model_betas)
+
+distance = dist(t_lmb, method="maximum")
+
+#clustering
+clustAvg = hclust(distance, method="average")      # average linkage
+clustCom = hclust(distance, method="complete")       # complete linkage
+
+#plots
+plot(as.dendrogram(clustAvg), las=1, leaflab="none", main = "Average Linkage Clustering Dendrogram", ylab = "Height")
+n = length(clustCom$height)     # get number of merges
+plot(n:1, clustCom$height, type='o', xlab="K", ylab="height", las=1, 
+     xlim=c(1, 50))
+points(7, clustCom$height[n-6], col="red", pch=19) # K=7
+
+clusterNum <- cutree(clustCom, k=7)     # cut so K=6
+clusterData <- cbind(clusterNum,t_lmb)
+```
+
+```{r eval = TRUE}
+View(clusterData)
+```
+
+
+# C-Means Clustering
+```{r eval = TRUE}
+library(ppclust)
+res.fcm <- fcm(t_lmb, centers=7)
+
+as.data.frame(res.fcm$u)[1:6,]
+
+summary(res$fcm)
+
+```
+
+```{r eval = TRUE}
+library("cluster")
+library("factoextra")
+library("magrittr")
+
+res.dist <- get_dist(t_lmb, stand = TRUE, method = "pearson")
+fviz_dist(res.dist, 
+   gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+```
 
