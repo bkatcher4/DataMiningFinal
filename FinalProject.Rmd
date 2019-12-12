@@ -13,9 +13,6 @@ data <- read.csv(url('https://raw.githubusercontent.com/bkatcher4/DataMiningFina
 
 #remove accepted_a_id
 data <- subset(data, select = -c(accepted_a_id) )
-
-answered_by_user <- questions[,c(3:22, (user+23))]
-  answered_by_user[,ncol(answered_by_user)] <- ((answered_by_user[,ncol(answered_by_user)] > 0)*1)
 ```
 
 
@@ -30,10 +27,12 @@ data[,names] <- lapply(data[,names] , factor)
 
 We first conducted some feature engineering. As you can see, we have the question number, an indicator for whether the question was answered, the number of characters and words in the body of the question and the title of the question, the number of tags on the post, the number of tags in the body, the number of tags in the title, the number of paragraphs in the body, the number of code snippets, the number of plots, the number of "stop words" (words that don't mean anything in a natural langauage processing context such as articles, prepositions, etc.), the number of question marks in the title, the number of question marks in the body, the minimum tag popularity, the minimum tag popularity score, the minimum tag answered ratio, maximum tag popularity, maximum tag popularity score, maximum tag answered ratio, and one-hot encoding for whether a given user answered the question. 
 
-This data represents characteristics about the questions and is very similar to data that could be scraped and created (via feature engieering) from any given forum site, such as Reddit, Quora, or another quesiton and answer-oriented site. From this data, we seek to get information regarding our users. In order to do this, we are going to run a series of regression models predicting their likelihood of answering a question. We do this in order to obtain beta coefficients for users which indicate their propensity for answering the question. Since the outcome is binary regarding whether someone answered the question, we intend to utilize logistic regression. We will explore regular logistic regression, Ridge Logistic Regression, Lasso Logisitic Regression, and Elastic Net Logistic Regression and determine the eventual matrix of betas to use, based on the model's information criteria resutls. 
+This data represents characteristics about the questions and is very similar to data that could be scraped and created (via feature engieering) from any given forum site, such as Reddit, Quora, or another quesiton and answer-oriented site. From this data, we seek to get information regarding our users. In order to do this, we are going to run a series of regression models predicting their likelihood of answering a question. We do this in order to obtain beta coefficients for users which indicate their propensity for answering the question. Since the outcome is binary regarding whether someone answered the question, we intend to utilize logistic regression. These coefficients represent the log odds ratio of the impact of a certain variable (for example, the verbosity of the post), and so we know that users with similar coefficient values have similar propensities to respond to a certain question with that characteristic. 
+
+Therefore, we build a dataset containing 104 observations (one for each user) contianing their vector of betas. We run a seperate logistic regression for each user where the outcome is whether they answer the question and the predictors are a vector of question characteristics. While in theory, we could employ other types of regression, i.e. logsitic LASSO, logistic ridge, or logistic elastic net (thereby adding a penalty term to the regression, and beneficial for conducting variable selection), we do not because of certain users only answering a few questions, e.g. User 8 only answers 4 questions, and to run 10-fold crossvalidation on that would be impractical due to some folds thus not having any "answered" outcomes, and the length of time it would take to run 104 10-fold crossvalidation regressions.
 
 
-# Regression Models:
+# Regression Model:
 
 ###: Simple Logistic Regression
 ```{r eval = TRUE}
@@ -68,31 +67,15 @@ colnames(linear_model_betas) <- tibble_names
 
 ```
 
-###: Ridge Regression
+Using this regression, we end up with a dataset containing data regarding the impact of each of the factors we identify on the likelihood that a given user will answer a question. We can preview the dataset below:
+
 ```{r eval = TRUE}
-library(tibble)
-library(glmnet)
-
-fuck <- tibble(name.repair=c("X1", 'X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'X8', 'X9', 'X10', 'X11',
-                             'X12', 'X13', 'X14', 'X15', 'X16', 'X17', 'X18', 'X19', 'X20'))
-
-# loop across all users
-for(user in 1:104){
-  
-  (user)
-  #subset data frame
-  answered_by_user <- data[,c(3:22, (user+22))]
-  answered_by_user[,ncol(answered_by_user)] <- ((answered_by_user[,ncol(answered_by_user)] != 0)*1)
-  
-  # run model
-  ridge_model <- cv.glmnet(x = as.matrix(data.frame(answered_by_user[,c(1:19)])), y = answered_by_user[,ncol(answered_by_user)], alpha = 0, type.measure = "deviance", family = "binomial")
-  
-  #get coefficients
-  ridge_coef <- coef(ridge_model, s="lambda.min")
-  
-  fuck <- cbind(fuck, ridge_coef@x)
-}
+# Transpose the dataset so that the users are the observations and the varaibles are the variables:
+t_lmb = t(linear_model_betas)
+head(t_lmb)
 ```
+
+Now that we have our dataset, we can begin conducint clustering analysis to see similarities in the characterisitcs of users who answer similar questions. In order to do this, we decide to explore different metrics of distance between users, as well as different ways of clustering users. We will begin by employing K-means cluster, and explore other types of clustering such as c-means clustering and spectral clustering. 
 
 # K-Means Clustering  
 ```{r eval = TRUE}
