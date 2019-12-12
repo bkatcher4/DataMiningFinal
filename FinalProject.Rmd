@@ -99,9 +99,6 @@ clusterNum <- cutree(clustCom, k=7)     # cut so K=6
 clusterData <- cbind(clusterNum,t_lmb)
 ```
 
-```{r eval = TRUE}
-View(clusterData)
-```
 
 
 # C-Means Clustering
@@ -111,7 +108,7 @@ res.fcm <- fcm(t_lmb, centers=7)
 
 as.data.frame(res.fcm$u)[1:6,]
 
-summary(res$fcm)
+#summary(res$fcm)
 
 ```
 
