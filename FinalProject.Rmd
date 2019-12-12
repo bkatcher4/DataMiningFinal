@@ -9,6 +9,7 @@ Millions of sites exist that allow individuals to post and answer questions. Fro
 As a case study to demonstrate the formation of online communities, we will walk through an analysis of [CrossValidated](https://stats.stackexchange.com/) users. The data set that we have is pulled from Stack Exchange's Data Explorer Tool. It contains all posts answered by users with a reputation score over 10,000. The data consist of 42,739 individual observations (at the question level), answered by 104 different users. 
 
 ```{r eval = TRUE, include = FALSE}
+library(ggplot2)
 data <- read.csv(url('https://raw.githubusercontent.com/bkatcher4/DataMiningFinal/master/question_metrics_power_users.csv'))
 
 #remove accepted_a_id
@@ -34,7 +35,7 @@ Therefore, we build a dataset containing 104 observations (one for each user) co
 
 # Regression Model:
 
-###: Simple Logistic Regression
+### Simple Logistic Regression
 ```{r eval = TRUE}
 library(tibble)
 
@@ -109,6 +110,17 @@ From here, we can determine the number of individuals in each cluster, telling u
 # Produces a tbale of the number of individuals in each cluster:
 table(clusterNum)
 ```
+
+We can also plot who these users are based on the two highest principal components:
+
+```{r eval = TRUE}
+pca_hier = data.frame(cbind(prcomp(t_lmb, scale=FALSE)$x[, 1:2], clusterNum))  # first 2 PC
+ggplot(pca_hier, aes(PC1, PC2)) + geom_point(aes(color = factor(clusterNum)))
+
+```
+
+In the graph above, we see that XXXX
+
 From this result, we can learn a lot about which CrossValidated users try to answer similar questions. There is a group of exactly half of the top users that tend to answer the same kinds of questions, competing with eachother for the best answer and reputation points, while there are several smaller groups as well. Groups of 24, 10, and 15 people. In addition, there are three individuals that seem to be "in a league of their own", meaning that they do not seem to answer the same questions as others. It's worthwhile to try and explore who these individuals are:
 
 ```{r eval = TRUE}
@@ -117,24 +129,99 @@ rownames(clusterData[clusterData$clusterNum>4,])
 We can see that these three "unique" users are users number 8, 251, and 8373. 
 
 ## K-Means Clustering
+We now move into another type of clustering, K-means. To begin, we scale the vector of coefficients. Next, we run kmeans for multiple K and plot the value of K against the SSE in order to look for an "elbow", which is the place wehre we choose the opitmal K. 
 
-
-# C-Means Clustering
 ```{r eval = TRUE}
-library(ppclust)
-res.fcm <- fcm(t_lmb, centers=11)
+# define the data
+km_lmb = t_lmb                
 
-as.data.frame(res.fcm$u)[1:6,]
+#-- Run kmeans for multiple K
+Kmax = 40                                 
+SSE = numeric(Kmax)                       # initiate SSE vector
+for(k in 1:Kmax){
+  km = kmeans(km_lmb, centers=k, nstart=25)    # use 25 starts
+  SSE[k] = km$tot.withinss                # get SSE
+}
 
+#-- Plot results
+plot(1:Kmax, SSE, type='o', las=1, xlab="K")
 ```
 
+Based on the graph above, it looks like the optimal K is k=7, as that's where there is a kink point in the graph. 
+
 ```{r eval = TRUE}
+set.seed(42069)
+km = kmeans(km_lmb, centers=7, nstart=25) # use K=7
+km_lmb = data.frame(cbind(km$cluster, t_lmb))
+table(km$cluster)
+```
+
+Based on these results, we see the same general pattern as above. While we don't see one large group, we see four groups of rouhgly 20-25 people, a smaller group of 7 people, and 2 outliers of only one person:
+
+```{r eval = TRUE}
+rownames(km_lmb[km_lmb$V1==1 | km_lmb$V1==6,])
+```
+
+We discover that user 8 and user 251 are once again outliers, which is the same result that we observe with hierarchical clustering. We can visualize the clusters again based on a plot of the two principal components, with coloring by cluster:
+
+```{r eval = TRUE}
+pca_km = data.frame(cbind(prcomp(t_lmb, scale=FALSE)$x[, 1:2], km$cluster))  # first 2 PC
+pca_km$cluster <- as.factor(pca_km$V3)
+ggplot(pca_km, aes(PC1, PC2)) + geom_point(aes(color = cluster))
+```
+
+## Fuzzy C-Means
+
+```{r eval = TRUE}
+set.seed(42069)
+
 library("cluster")
 library("factoextra")
 library("magrittr")
+library('ppclust')
 
-res.dist <- get_dist(t_lmb, stand = TRUE, method = "pearson")
-fviz_dist(res.dist, 
-   gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+# define the data
+fcm_lmb = t_lmb                
+
+#-- Run c-means for K = 7 (using the same number of clusters as for k-means and hierarchical)
+fcm = fcm(x = fcm_lmb, centers = 7, nstart = 10)   # use 10 starts
+
+
+# create cluster plot 
+res.fcm2 <- ppclust2(fcm, "kmeans")
+fviz_cluster(res.fcm2, data = fcm_lmb, 
+  ellipse.type = "convex",
+  palette = "jco",
+  labelsize = 0,
+  repel = FALSE)
+
+```
+
+With c-means, we obtain the probability of picking each observation being in each cluster, which can be viewed below for the first few observations:
+```{r eval = TRUE}
+head(fcm$u)
+```
+
+We can also see the distance between each point and the centroid of the clusters for the first few observations:
+```{r eval = TRUE}
+head(fcm$d)
+```
+
+We can see that using fuzzy c-means and picking the probabilistically most likely cluster gives us a more even distribution, many groups are around 15-25 people, with an outlier of one person.
+```{r eval = TRUE}
+fcm$csize
+```
+
+We can see the outlier is, not clustered with anyone else, and again it is User 8:
+```{r eval = TRUE}
+fcm_res = data.frame(cbind(t_lmb, fcm$cluster))
+rownames(fcm_res[fcm_res$V12==7,])
+```
+
+#Computing Distance between All Users:
+
+
+```{r eval = TRUE}
+
 ```
 
