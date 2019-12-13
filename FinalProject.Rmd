@@ -242,8 +242,7 @@ fcm$csize
 We can see the outlier is, not clustered with anyone else, and again it is User 8:
 ```{r eval = TRUE}
 fcm_res = data.frame(cbind(t_lmb, fcm$cluster))
-rownames(fcm_res[fcm_res$V12==7,])
+rownames(fcm_res[fcm_res$V12==6,])
 ```
-
 
 

@@ -17,8 +17,6 @@ data <- subset(data, select = -c(accepted_a_id) )
 ```
 
 
-
-
 We can preview the first six rows of data here: 
 ```{r eval = TRUE, echo = FALSE}
 head(data)
@@ -84,11 +82,12 @@ km = kmeans(X, centers=number_of_clusters, nstart=100)  # run k-means
 single_user_clusers <- which(km$size == 1)
 outlier_indicies <- rep(0, length(single_user_clusers))
 outlier_user_ids <- rep(0, length(single_user_clusers))
-for(index in 1:length(single_user_clusers))
-{
-  outlier_indicies[index] <- which(km$cluster == single_user_clusers[index])  
-  outlier_user_ids[index] <- labels[which(km$cluster == single_user_clusers[index])]  
-}
+
+#for(index in 1:length(single_user_clusers))
+#{
+  #outlier_indicies[index] <- which(km$cluster == single_user_clusers[index])  
+  #outlier_user_ids[index] <- labels[which(km$cluster == single_user_clusers[index])]  
+#}
 ```
 
 # Regression Model:
@@ -97,32 +96,32 @@ for(index in 1:length(single_user_clusers))
 ```{r eval = TRUE}
 library(tibble)
 
-logistic_regression <- function(predictors, response, max_iterations)
-{
-  ones <- matrix(1,nrow(predictors),1)
-  X <- as.matrix(cbind(ones, predictors))
-  Y <- as.matrix(response)
-  Beta <- ((inv(t(X) %*% X) %*% t(X)) %*% Y)
-  for (itteration in 1:max_iterations)
-  {
-    P <- exp(X %*% Beta)/(1 + exp(X %*% Beta))
-    one_minus_P <- 1-P
-    W <- Diagonal(nrow(X), (P*one_minus_P))
-    #Gradient <- as.matrix(unname(t(X) %*% (Y - P)))
-    #Hessian <- as.matrix(unname(-(t(X) %*% W %*% X)))
-    Beta <- Beta + (ginv(as.matrix(unname((t(X) %*% W %*% X)))) %*% as.matrix(unname(t(X) %*% (Y - P))))
-  }
-  return(t(Beta))
+# intialize tibble to store coefficients
+linear_model_betas <- tibble(name.repair=c("X1", 'X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'X8', 'X9', 'X10', 'X11'))
+
+# loop across all users
+for(user in 1:104){
+  
+  (user)
+  #subset data frame
+  answered_by_user <- data[,c(3:22, (user+22))]
+  
+  # run model
+  model <- glm(answered_by_user[,ncol(answered_by_user)] ~ n_paragraphs_body + n_code_snippets + n_stop_words_body + verbosity + n_tags_title + ques_marks_title + min_tag_answered_ratio + max_tag_popularity + max_tag_answered_ratio + max_tag_popularity_score, family = binomial(link = "logit"), data = answered_by_user)
+  
+  # store beta coefficients in a local
+  beta_i <- model$coefficients
+  
+  # add beta coefficients to data frame
+  linear_model_betas <- cbind(linear_model_betas, beta_i)
 }
 
-linear_model_betas <- matrix(0, nrow(laplacian_matrix), 11)
-for(user in 1:104)
-{
-  answered_by_user <- questions[,c(3:22, (user+23))]
-  predictors <- questions[,c(10, 11, 13, 14, 9, 15, 19, 20, 22, 21)]
-  response <- ((questions[,c(user+23)] > 0)*1)
-  linear_model_betas[user,] <- logistic_regression(predictors, response, 100)
-}
+#remove X labels
+linear_model_betas <- linear_model_betas[,-1]
+
+#rename variables in tibble 
+tibble_names <- names(data[,names])
+colnames(linear_model_betas) <- tibble_names
 ```
 
 Using this regression, we end up with a dataset containing data regarding the impact of each of the factors we identify on the likelihood that a given user will answer a question. We can preview the dataset below:
@@ -131,7 +130,9 @@ Using this regression, we end up with a dataset containing data regarding the im
 # Transpose the dataset so that the users are the observations and the varaibles are the variables:
 t_lmb = t(linear_model_betas)
 head(t_lmb)
+linear_model_betas = t(linear_model_betas)
 ```
+
 
 Now that we have our dataset, we can begin conducint clustering analysis to see similarities in the characterisitcs of users who answer similar questions. In order to do this, we decide to explore different metrics of distance between users, as well as different ways of clustering users. We will begin by employing hierarchical clustering, then K-means cluster, and explore other types of clustering such as c-means clustering and spectral clustering. 
 
@@ -140,6 +141,7 @@ We first begin by exploring distance between various users based on the coeffici
 #Computing Distance between All Users:  
 ```{r eval = TRUE}
 library('factoextra')
+library(ggplot2)
 
 manhattan_distance <- rep(0, ((nrow(laplacian_matrix)^2/2)-(nrow(laplacian_matrix)/2)))
 euclidean_distance <- rep(0, ((nrow(laplacian_matrix)^2/2)-(nrow(laplacian_matrix)/2)))
@@ -176,9 +178,6 @@ fviz_dist(res.dist3,
 
 
 
-
-
-
 ## Hierarchical Clustering 
 
 We begin by computing the pairwise dissimilarity between users, which is defined as the Euclidian distance between points. From this, we conduct hierarchical clustering and create a dendrogram from agglomerative hierarchical clustering. In doing so, we use complete linkage, which computes cluster dissimilarity as the largest dissimilarity between pairs in two sets. Therefore, on the dendrogram below, the height corresponds to the dissimlarity between the most dissimlar points in the two clusters. 
@@ -187,7 +186,6 @@ In order to choose the number of clusters (K), we look for regions in the dendro
 
 ```{r eval = TRUE}
 #Calculate Maximum distance
-t_lmb = t(linear_model_betas)
 distance = dist(t_lmb, method="euclidian")
 
 #clustering
@@ -233,6 +231,8 @@ We can see that these three "unique" users are users number 8, 251, and 8373.
 We now move into another type of clustering, K-means. To begin, we scale the vector of coefficients. Next, we run kmeans for multiple K and plot the value of K against the SSE in order to look for an "elbow", which is the place wehre we choose the opitmal K. 
 
 ```{r eval = TRUE}
+library(stats)
+
 # define the data
 km_lmb = t_lmb                
 
@@ -274,7 +274,7 @@ ggplot(pca_km, aes(PC1, PC2)) + geom_point(aes(color = cluster))
 ## Fuzzy C-Means
 
 ```{r eval = TRUE}
-set.seed(42069)
+set.seed(75)
 
 library("cluster")
 library("factoextra")
@@ -320,5 +320,6 @@ fcm_res = data.frame(cbind(t_lmb, fcm$cluster))
 rownames(fcm_res[fcm_res$V12==7,])
 ```
 
+# Conclusions and Takeaways:
 
 
