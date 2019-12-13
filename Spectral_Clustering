@@ -1,0 +1,51 @@
+adjacency_matrix <- matrix(0,(ncol(questions)-23),(ncol(questions)-23))
+for(user_a in 1:104)
+{
+  for(user_b in 1:104)
+  {
+    if(user_a > user_b)
+    {
+      answered_by_user_a <- questions[,c(user_a+23)]
+      answered_by_user_a <- ((answered_by_user_a > 0)*1)
+      answered_by_user_b <- questions[,c(user_b+23)]
+      answered_by_user_b <- ((answered_by_user_b > 0)*1)
+      adjacency_matrix[user_a, user_b] <- sum(questions[,c(user_a+23)] == 1 & questions[,c(user_b+23)] == 1)
+      adjacency_matrix[user_b, user_a] <- sum(questions[,c(user_b+23)] == 1 & questions[,c(user_a+23)] == 1)
+    }
+  }
+}
+
+degree_matrix <- matrix(0,(ncol(questions)-23),(ncol(questions)-23))
+for(user_a in 1:104)
+{
+  degree_matrix[user_a, user_a] <- sum((adjacency_matrix[user_a,] > 0)*1)
+}
+
+laplacian_matrix <- degree_matrix - adjacency_matrix
+eigen_object <- eigen(laplacian_matrix)
+number_of_participants <-  nrow(laplacian_matrix)
+
+max_number_of_clusters <- 52
+SSE = numeric(max_number_of_clusters)
+for(number_of_clusters in 1:max_number_of_clusters){
+  X = eigen_object$vectors[, number_of_participants-(1:number_of_clusters)] # get the smallest k non-zero eigevectors
+  km = kmeans(X, centers=number_of_clusters, nstart = 100) # run kmeans
+  SSE[number_of_clusters] = km$tot.withinss   # calculate the SSE
+}
+
+plot(1:max_number_of_clusters, SSE, type='o', las=1, xlab="k")
+plot(eigen_object$values[number_of_participants-(1:max_number_of_clusters)], xlab="k", ylab="eigenvalues")
+plot(diff(eigen_object$values[number_of_participants-(1:max_number_of_clusters)]))\
+
+number_of_clusters <- 8
+X = eigen_object$vectors[, number_of_participants-(1:number_of_clusters)] # get the smallest k non-zero eigevectors
+km = kmeans(X, centers=number_of_clusters, nstart=100)  # run k-means 
+
+single_user_clusers <- which(km$size == 1)
+outlier_indicies <- rep(0, length(single_user_clusers))
+outlier_user_ids <- rep(0, length(single_user_clusers))
+for(index in 1:length(single_user_clusers))
+{
+  outlier_indicies[index] <- which(km$cluster == single_user_clusers[index])  
+  outlier_user_ids[index] <- labels[which(km$cluster == single_user_clusers[index])]  
+}
