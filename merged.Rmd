@@ -207,21 +207,28 @@ for(user_a in 1:104)
 
 ```
 
+Using various distance metrics, we can identify the most similar user to a given user. Take for example, we want to identify who the closest person is to User 8336:
+
+
+We can look up in our matricies the shortest distance between this user and all other users and find who the closest individual is:
+
 ```{r eval = TRUE}
 person_of_interest <- "user8336_flag" #my muse
 
 #find the users nearest to our person of interestby each distance metric and by from the network we casted the data into
-adjacency_neighbor <- labels[which(adjacency_matrix[which(labels == person_of_interest),] == max(adjacency_matrix[which(labels == person_of_interest),]))]
+adjacency_neighbor <- labels[which(adjacency_matrix[which(labels == "user8336_flag"),] == max(adjacency_matrix[which(labels == "user8336_flag"),]))]
 
-manhattan_neighbor <- labels[which(manhattan_distance_matrix[which(labels == person_of_interest),] == min(manhattan_distance_matrix[which(labels == person_of_interest),][manhattan_distance_matrix[which(labels == person_of_interest),] > 0]))]
+manhattan_neighbor <- labels[which(manhattan_distance_matrix[which(labels == "user8336_flag"),] == min(manhattan_distance_matrix[which(labels == "user8336_flag"),][manhattan_distance_matrix[which(labels == "user8336_flag"),] > 0]))]
 
-euclidean_neighbor <- labels[which(euclidean_distance_matrix[which(labels == person_of_interest),] == min(euclidean_distance_matrix[which(labels == person_of_interest),][euclidean_distance_matrix[which(labels == person_of_interest),] > 0]))]
+euclidean_neighbor <- labels[which(euclidean_distance_matrix[which(labels =="user8336_flag"),] == min(euclidean_distance_matrix[which(labels == "user8336_flag"),][euclidean_distance_matrix[which(labels == "user8336_flag"),] > 0]))]
              
-cosine_neighbor <- labels[which(cosine_distance_matrix[which(labels == person_of_interest),] == min(cosine_distance_matrix[which(labels == person_of_interest),][cosine_distance_matrix[which(labels == person_of_interest),] > 0]))]
+cosine_neighbor <- labels[which(cosine_distance_matrix[which(labels == "user8336_flag"),] == min(cosine_distance_matrix[which(labels == "user8336_flag"),][cosine_distance_matrix[which(labels == "user8336_flag"),] > 0]))]
              
-jaccard_neighbor <- labels[which(jaccard_distance_matrix[which(labels == person_of_interest),] == min(jaccard_distance_matrix[which(labels == person_of_interest),][jaccard_distance_matrix[which(labels == person_of_interest),] > 0]))]
+jaccard_neighbor <- labels[which(jaccard_distance_matrix[which(labels == "user8336_flag"),] == min(jaccard_distance_matrix[which(labels == "user8336_flag"),][jaccard_distance_matrix[which(labels == "user8336_flag"),] > 0]))]
 ```
 
+
+We can see some of the visualization of these distance metrics here (euclidian distance):
 
 ```{r eval = TRUE}
 res.dist <- get_dist(t_lmb[1:35,], stand = TRUE, method = "euclidian")
