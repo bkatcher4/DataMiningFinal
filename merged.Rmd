@@ -4,7 +4,7 @@ author: "Bradley Katcher and Aneesh Sandhir"
 output: html_document
 ---
 
-Millions of sites exist that allow individuals to post and answer questions. From personal blogs to sites like Reddit and Stack Exachange, there are a plethora of opportunities for people to interact and help eachother throughout the internet. In doing so, enclave-like internet communities begin to form, where the same individuals respond to the same types of questions and virtually interact with the same kinds of individuals. Throughout this tutorial, we will employ data mining techniques to demonstrate how to identify a set of individuals that engage with the same kind of content online. 
+Millions of sites exist that allow individuals to post and answer questions. From personal blogs to sites like Reddit and Stack Exachange, there are a plethora of opportunities for people to interact and help eachother throughout the internet. In doing so, enclave-like internet communities begin to form, where the same individuals respond to the same types of questions and virtually interact with the same kinds of individuals. Throughout this tutorial, we will employ data mining techniques to demonstrate how to identify a set of individuals that engage with the same kind of content online. We also seek to identifying a means of determining the closest user to a given user via the types of questions they answer, i.e. the person with whom they are most likely to answer similar questions or compete for contributing the best answer. 
 
 As a case study to demonstrate the formation of online communities, we will walk through an analysis of [CrossValidated](https://stats.stackexchange.com/) users. The data set that we have is pulled from Stack Exchange's Data Explorer Tool. It contains all posts answered by users with a reputation score over 10,000. The data consist of 42,739 individual observations (at the question level), answered by 104 different users. 
 
@@ -24,18 +24,22 @@ names <- c(23:126)
 data[,names] <- lapply(data[,names] , factor)
 ```
 
-We first conducted some feature engineering. As you can see, we have the question number, an indicator for whether the question was answered, the number of characters and words in the body of the question and the title of the question, the number of tags on the post, the number of tags in the body, the number of tags in the title, the number of paragraphs in the body, the number of code snippets, the number of plots, the number of "stop words" (words that don't mean anything in a natural langauage processing context such as articles, prepositions, etc.), the number of question marks in the title, the number of question marks in the body, the minimum tag popularity, the minimum tag popularity score, the minimum tag answered ratio, maximum tag popularity, maximum tag popularity score, maximum tag answered ratio, and one-hot encoding for whether a given user answered the question. 
-
-This data represents characteristics about the questions and is very similar to data that could be scraped and created (via feature engieering) from any given forum site, such as Reddit, Quora, or another quesiton and answer-oriented site. From this data, we seek to get information regarding our users. In order to do this, we are going to run a series of regression models predicting their likelihood of answering a question. We do this in order to obtain beta coefficients for users which indicate their propensity for answering the question. Since the outcome is binary regarding whether someone answered the question, we intend to utilize logistic regression. These coefficients represent the log odds ratio of the impact of a certain variable (for example, the verbosity of the post), and so we know that users with similar coefficient values have similar propensities to respond to a certain question with that characteristic. 
-
-Therefore, we build a dataset containing 104 observations (one for each user) contianing their vector of betas. We run a seperate logistic regression for each user where the outcome is whether they answer the question and the predictors are a vector of question characteristics. While in theory, we could employ other types of regression, i.e. logsitic LASSO, logistic ridge, or logistic elastic net (thereby adding a penalty term to the regression, and beneficial for conducting variable selection), we do not because of certain users only answering a few questions, e.g. User 8 only answers 4 questions, and to run 10-fold crossvalidation on that would be impractical due to some folds thus not having any "answered" outcomes, and the length of time it would take to run 104 10-fold crossvalidation regressions.
+We first conducted some feature engineering. As you can see, we have the question number, an indicator for whether the question was answered, the number of characters and words in the body of the question and the title of the question, the number of tags on the post, the number of tags in the body, the number of tags in the title, the number of paragraphs in the body, the number of code snippets, the number of plots, the number of "stop words" (words that don't mean anything in a natural langauage processing context such as articles, prepositions, etc.), the number of question marks in the title, the number of question marks in the body, the minimum tag popularity, the minimum tag popularity score, the minimum tag answered ratio, maximum tag popularity, maximum tag popularity score, maximum tag answered ratio, and one-hot encoding for whether a given user answered the question. This data represents characteristics about the questions and is very similar to data that could be scraped and created (via feature engieering) from any given forum site, such as Reddit, Quora, or another quesiton and answer-oriented site. 
 
 # Network Analysis:
 
+We first look at a network anlaysis approach via spectral clustering. We seek to identify communities of nodes (users) based on the edges that connect them (answering the same questions). In doing so, we conduct matricies of edges and nodes and compute the eigenvalues (spectrum) of these matricies and then use k-means clustering to cluster users. 
+
+Source: [Spectral Clustering](https://towardsdatascience.com/spectral-clustering-aba2640c0d5b)
+Source: [A Tutorial on Spectral Clustering](https://www.cs.cmu.edu/~aarti/Class/10701/readings/Luxburg06_TR.pdf)
+
+
 ### Spectral Clustering
 ```{r eval = TRUE}
+#load dataset
 questions <- read.csv(url('https://raw.githubusercontent.com/bkatcher4/DataMiningFinal/master/question_metrics_power_users.csv'))
 
+#initalize adjacency matrix:
 adjacency_matrix <- matrix(0,(ncol(questions)-23),(ncol(questions)-23))
 for(user_a in 1:104)
 {
@@ -53,15 +57,20 @@ for(user_a in 1:104)
   }
 }
 
+# initalize degree matrix:
 degree_matrix <- matrix(0,(ncol(questions)-23),(ncol(questions)-23))
 for(user_a in 1:104)
 {
   degree_matrix[user_a, user_a] <- sum((adjacency_matrix[user_a,] > 0)*1)
 }
 
+#compute laplacian and obtain eigenvectors 
 laplacian_matrix <- degree_matrix - adjacency_matrix
 eigen_object <- eigen(laplacian_matrix)
 number_of_participants <-  nrow(laplacian_matrix)
+
+# clustering
+set.seed(666)
 
 max_number_of_clusters <- 52
 SSE = numeric(max_number_of_clusters)
@@ -71,9 +80,10 @@ for(number_of_clusters in 1:max_number_of_clusters){
   SSE[number_of_clusters] = km$tot.withinss   # calculate the SSE
 }
 
-plot(1:max_number_of_clusters, SSE, type='o', las=1, xlab="k")
-plot(eigen_object$values[number_of_participants-(1:max_number_of_clusters)], xlab="k", ylab="eigenvalues")
-plot(diff(eigen_object$values[number_of_participants-(1:max_number_of_clusters)]))
+#plots
+plot(1:max_number_of_clusters, SSE, type='o', las=1, xlab="Number of Clusters")
+plot(eigen_object$values[number_of_participants-(1:max_number_of_clusters)], xlab="Number of Clusters", ylab="Eigenvalues")
+plot(diff(eigen_object$values[number_of_participants-(1:max_number_of_clusters)]), ylab="Difference Between Eigenvalues", xlab ="Eigenvaues")
 
 number_of_clusters <- 8
 X = eigen_object$vectors[, number_of_participants-(1:number_of_clusters)] # get the smallest k non-zero eigevectors
@@ -82,18 +92,21 @@ km = kmeans(X, centers=number_of_clusters, nstart=100)  # run k-means
 single_user_clusers <- which(km$size == 1)
 outlier_indicies <- rep(0, length(single_user_clusers))
 outlier_user_ids <- rep(0, length(single_user_clusers))
+```
 
-#for(index in 1:length(single_user_clusers))
-#{
-  #outlier_indicies[index] <- which(km$cluster == single_user_clusers[index])  
-  #outlier_user_ids[index] <- labels[which(km$cluster == single_user_clusers[index])]  
-#}
+Based on the plots, we choose a value of K=8 for our spectral clustering based on users who answer the same questions. Based on our anlaysis of our 8 clusters, it appears there are three relatively large groups (44 people, 39 people, and 19 people) who all go after the same questions, and there is a smaller group of seven individuals, and then four outliers who seem to not answer many of the same quesions.
+```{r eval = TRUE}
+table(km$cluster)
 ```
 
 # Regression Model:
 
+From the dataset that we have, after conducting feature engieering, we seek to get information regarding our users. In order to do this, we are going to run a series of regression models predicting their likelihood of answering a question. We do this in order to obtain beta coefficients for users which indicate their propensity for answering the question. Since the outcome is binary regarding whether someone answered the question, we intend to utilize logistic regression. These coefficients represent the log odds ratio of the impact of a certain variable (for example, the verbosity of the post), and so we know that users with similar coefficient values have similar propensities to respond to a certain question with that characteristic. 
+
+Therefore, we build a dataset containing 104 observations (one for each user) contianing their vector of betas. We run a seperate logistic regression for each user where the outcome is whether they answer the question and the predictors are a vector of question characteristics. While in theory, we could employ other types of regression, i.e. logsitic LASSO, logistic ridge, or logistic elastic net (thereby adding a penalty term to the regression, and beneficial for conducting variable selection), we do not because of certain users only answering a few questions, e.g. User 8 only answers 4 questions, and to run 10-fold crossvalidation on that would be impractical due to some folds thus not having any "answered" outcomes, and the length of time it would take to run 104 10-fold crossvalidation regressions.
+
 ### Simple Logistic Regression
-```{r eval = TRUE}
+```{r eval = TRUE, warning = FALSE}
 library(tibble)
 
 # intialize tibble to store coefficients
@@ -139,6 +152,11 @@ Now that we have our dataset, we can begin conducint clustering analysis to see 
 We first begin by exploring distance between various users based on the coefficients. Given the number of users, it is im impractical to put all of the users on one graph, therefore, we will divide the users into relative thirds. We compute a euclidian distance between the users, and the more red the block is, the further the individuals are from eachother, whereas the more blue, the closer the individuals are to eachother
 
 #Computing Distance between All Users:  
+
+To compare users directly, we can compute a series of distance metrics based on their coefficient, including euclidian distance (shown in the plots below), manhattan distance, and cosine distance. In order to find who the closest (or furthest) user from each other user, we can look up distances in the matricies we create specifying the distance between every user. 
+
+Source: [Importance of Distance Metrics in Machine Learning Modelling](https://towardsdatascience.com/importance-of-distance-metrics-in-machine-learning-modelling-e51395ffe60d)
+
 ```{r eval = TRUE}
 library('factoextra')
 library(ggplot2)
@@ -160,6 +178,8 @@ for(user_a in 1:104)
     }
   }
 }
+
+#plots of euclidian distance
 
 res.dist <- get_dist(t_lmb[1:35,], stand = TRUE, method = "euclidian")
 fviz_dist(res.dist, 
@@ -228,7 +248,9 @@ rownames(clusterData[clusterData$clusterNum>4,])
 We can see that these three "unique" users are users number 8, 251, and 8373. 
 
 ## K-Means Clustering
-We now move into another type of clustering, K-means. To begin, we scale the vector of coefficients. Next, we run kmeans for multiple K and plot the value of K against the SSE in order to look for an "elbow", which is the place wehre we choose the opitmal K. 
+We now move into another type of clustering, K-means. In K-means, we use the EM algoritihm applied to a Naive Bayes model. We specify the number of centroids (K). We run kmeans for multiple K and plot the value of K against the SSE in order to look for an "elbow", which is the place wehre we choose the opitmal K. The algorithm then intializes the centroids and uses the EM algorithm to iterate until there is no change in the centroid locations. 
+
+Source: [K-means Clustering: Algorithm, Applications, Evaluation Methods, and Drawbacks](https://towardsdatascience.com/k-means-clustering-algorithm-applications-evaluation-methods-and-drawbacks-aa03e644b48a) Source: Clustering (https://mdporter.github.io/SYS6018/lectures/04-clustering.pdf) Source: [Clustering.R](https://mdporter.github.io/SYS6018/R/clustering.R)
 
 ```{r eval = TRUE}
 library(stats)
@@ -257,7 +279,7 @@ km_lmb = data.frame(cbind(km$cluster, t_lmb))
 table(km$cluster)
 ```
 
-Based on these results, we see the same general pattern as above. While we don't see one large group, we see four groups of rouhgly 20-25 people, a smaller group of 7 people, and 2 outliers of only one person:
+Based on these results, we see the same general pattern as above. While we don't see one large group, we see four groups of rouhgly 15-30 people, a smaller group of 6 people, and 2 outliers of only one person:
 
 ```{r eval = TRUE}
 rownames(km_lmb[km_lmb$V1==1 | km_lmb$V1==6,])
@@ -273,8 +295,11 @@ ggplot(pca_km, aes(PC1, PC2)) + geom_point(aes(color = cluster))
 
 ## Fuzzy C-Means
 
+In Fuzzy C-Means, each data point (user) is not assigned to just one cluster (like k-means). Instead, it is a member of all clusters with varying degrees of memebrship between 0 and 1. FCM works as an iterative clustering algorithim that partitions the data into a number of clusters (in our case, 7) and then minimizes the weighted within-group sum of squared errors. 
+
+Source: [Fuzzy C-Means Clustering](https://www.rdocumentation.org/packages/ppclust/versions/0.1.3/topics/fcm)
+
 ```{r eval = TRUE}
-set.seed(75)
 
 library("cluster")
 library("factoextra")
@@ -286,7 +311,7 @@ library('ppclust')
 fcm_lmb = t_lmb                
 
 #-- Run c-means for K = 7 (using the same number of clusters as for k-means and hierarchical)
-fcm = fcm(x = fcm_lmb, centers = 7, nstart = 10)   # use 10 starts
+fcm = fcm(x = fcm_lmb, centers = 7, nstart = 10, numseed=3000)   # use 10 starts
 
 
 # create cluster plot 
