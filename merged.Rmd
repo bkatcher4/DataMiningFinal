@@ -1,7 +1,9 @@
 ---
 title: "Advanced Clustering Methods from Post Data"
 author: "Bradley Katcher and Aneesh Sandhir"
-output: html_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 Millions of sites exist that allow individuals to post and answer questions. From personal blogs to sites like Reddit and Stack Exachange, there are a plethora of opportunities for people to interact and help eachother throughout the internet. In doing so, enclave-like internet communities begin to form, where the same individuals respond to the same types of questions and virtually interact with the same kinds of individuals. Throughout this tutorial, we will employ data mining techniques to demonstrate how to identify a set of individuals that engage with the same kind of content online. We also seek to identifying a means of determining the closest user to a given user via the types of questions they answer, i.e. the person with whom they are most likely to answer similar questions or compete for contributing the best answer. 
@@ -207,8 +209,7 @@ for(user_a in 1:104)
 
 ```
 
-Using various distance metrics, we can identify the most similar user to a given user. Take for example, we want to identify who the closest person is to User 8336:
-
+Using various distance metrics, we can identify the most similar user to a given user. Take for example, we want to identify who the closest person is to User 8336.
 
 We can look up in our matricies the shortest distance between this user and all other users and find who the closest individual is:
 
@@ -226,6 +227,28 @@ cosine_neighbor <- labels[which(cosine_distance_matrix[which(labels == "user8336
              
 jaccard_neighbor <- labels[which(jaccard_distance_matrix[which(labels == "user8336_flag"),] == min(jaccard_distance_matrix[which(labels == "user8336_flag"),][jaccard_distance_matrix[which(labels == "user8336_flag"),] > 0]))]
 ```
+
+Based on each of these distance metrics, here is the closest user to user 8336:
+```{r eval = TRUE}
+
+#Adjacency 
+adjacency_neighbor
+
+#Manhattan Distance
+manhattan_neighbor
+
+#Euclidian Distance:
+euclidean_neighbor
+
+#Cosine Distance:
+cosine_neighbor
+
+#Jaccard Distance:
+jaccard_neighbor
+
+```
+
+So while each distance metric gives a different user, we have a series of candidates who we believe are relatively close to our user of interest.
 
 
 We can see some of the visualization of these distance metrics here (euclidian distance):
@@ -440,17 +463,14 @@ We can also see the distance between each point and the centroid of the clusters
 head(fcm$d)
 ```
 
-We can see that using fuzzy c-means and picking the probabilistically most likely cluster gives us a more even distribution, many groups are around 15-25 people, with an outlier of one person.
+We can see that using fuzzy c-means and picking the probabilistically most likely cluster gives us a more even distribution, despite User 8 being far away on the above plot.
 ```{r eval = TRUE}
 fcm$csize
 ```
 
-We can see the outlier is, not clustered with anyone else, and again it is User 8:
-```{r eval = TRUE}
-fcm_res = data.frame(cbind(t_lmb, fcm$cluster))
-head(fcm_res)
-```
 
 # Conclusions and Takeaways:
 
+In conclusion, we were able to confirm our hypothesis that clusters of individuals do form on the internet message boards such as CrossValidated. Using four different clustering techniques (spatial, k-means, fuzzy c-means, and hierarchical) as well as computing a number of different distance metrics, we were able to identify outliers in various communities, User 8, for example.
 
+We were also able to determine that most clustering methods find a few bigger groups (sometimes very large), a few smaller groups, and a few outliers among the individuals who were most active on CrossValidated. These techniques can be applied to pretty much any different message board in order to gain inisghts about how communities cluster and what individuals tend to engage with the same type of content. 
