@@ -78,6 +78,32 @@ head(t_lmb)
 
 Now that we have our dataset, we can begin conducint clustering analysis to see similarities in the characterisitcs of users who answer similar questions. In order to do this, we decide to explore different metrics of distance between users, as well as different ways of clustering users. We will begin by employing hierarchical clustering, then K-means cluster, and explore other types of clustering such as c-means clustering and spectral clustering. 
 
+We first begin by exploring distance between various users based on the coefficients. Given the number of users, it is im impractical to put all of the users on one graph, therefore, we will divide the users into relative thirds. We compute a euclidian distance between the users, and the more red the block is, the further the individuals are from eachother, whereas the more blue, the closer the individuals are to eachother
+
+#Computing Distance between All Users:  
+```{r eval = TRUE}
+library('factoextra')
+
+res.dist <- get_dist(t_lmb[1:35,], stand = TRUE, method = "euclidian")
+fviz_dist(res.dist, 
+   gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+
+res.dist2 <- get_dist(t_lmb[36:70,], stand = TRUE, method = "euclidian")
+fviz_dist(res.dist2, 
+   gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+
+
+res.dist3 <- get_dist(t_lmb[71:104,], stand = TRUE, method = "euclidian")
+fviz_dist(res.dist3, 
+   gradient = list(low = "#00AFBB", mid = "white", high = "#FC4E07"))
+
+```
+
+
+
+
+
+
 ## Hierarchical Clustering 
 
 We begin by computing the pairwise dissimilarity between users, which is defined as the Euclidian distance between points. From this, we conduct hierarchical clustering and create a dendrogram from agglomerative hierarchical clustering. In doing so, we use complete linkage, which computes cluster dissimilarity as the largest dissimilarity between pairs in two sets. Therefore, on the dendrogram below, the height corresponds to the dissimlarity between the most dissimlar points in the two clusters. 
@@ -180,6 +206,7 @@ library("factoextra")
 library("magrittr")
 library('ppclust')
 
+
 # define the data
 fcm_lmb = t_lmb                
 
@@ -218,10 +245,5 @@ fcm_res = data.frame(cbind(t_lmb, fcm$cluster))
 rownames(fcm_res[fcm_res$V12==7,])
 ```
 
-#Computing Distance between All Users:
 
-
-```{r eval = TRUE}
-
-```
 
